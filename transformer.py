@@ -5,13 +5,19 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ModelParams:
-    device:str = "cuda" if torch.cuda.is_available() else "cpu"
+class ModelHyperParams:
+    device:str = "mps" if torch.cuda.is_available() else "cpu"
     n_embd:int = 256
+    n_heads:int = 4
+    n_layers:int = 6
+    wavenet_layers:int = 3
+    reshape_factor:int = 4
+    block_size:int = 128
+    batch_size:int = 32
     dropout:float = 0.2
 
 
-params = ModelParams()
+params = ModelHyperParams()
 
 
 class Head(nn.Module):
@@ -34,7 +40,7 @@ class Head(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, n_heads:int, n_embd:int = params.n_embd, dropout:float = params.dropout):
+    def __init__(self, n_heads:int = params.n_heads, n_embd:int = params.n_embd, dropout:float = params.dropout):
         super().__init__()
         assert n_embd % n_heads == 0, "n_heads should be divisible by n_embd"
         head_size = n_embd // n_heads
@@ -65,7 +71,7 @@ class FeedForward(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, n_heads:int, n_embd:int = params.n_embd, dropout:float = params.dropout):
+    def __init__(self, n_heads:int = params.n_heads, n_embd:int = params.n_embd, dropout:float = params.dropout):
         super().__init__()
         self.mha = MultiHeadAttention(n_heads, n_embd, dropout)
         self.ffn = FeedForward(n_embd)
