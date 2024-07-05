@@ -43,7 +43,7 @@
     <figcaption >A single WaveNet Layer</figcation>
     </figure>
 </div>
-
+<br>
 The diagram above illustrates the architecture of WaveGPT. The process involves:
 
 1. **Input Sequence**: The input sequence of shape (B, T).
