@@ -10,15 +10,15 @@
 ### WaveGPT
 <div style="text-align: center;">
     <figure>
-        <img src="img/WaveGPT.png" width=400>
-    <figcaption >WaveGPT Architecture</figcation>
+        <img src="img/WaveGPT.png" width=400><br>
+    <figcaption>WaveGPT Architecture</figcation>
     </figure>
 </div>
 
 ### GPT
 <div style="text-align: center;">
     <figure>
-        <img src="img/GPT.png" width=300>
+        <img src="img/GPT.png" width=300><br>
     <figcaption >GPT Architecture <br><i><a href="https://en.m.wikipedia.org/wiki/File:Full_GPT_architecture.png">image source</a></i> </figcation>
     </figure>
 </div>
@@ -31,7 +31,7 @@
 ### WaveNet
 <div style="text-align: center;">
     <figure>
-        <img src="img/WaveNet.png" width=300>
+        <img src="img/WaveNet.png" width=300><br>
     <figcaption >WaveNet Architecture</figcation>
     </figure>
 </div>
@@ -39,7 +39,7 @@
 ### WaveNet Layer
 <div style="text-align: center;">
     <figure>
-        <img src="img/WaveNetLayer.png" width=300>
+        <img src="img/WaveNetLayer.png" width=300><br>
     <figcaption >A single WaveNet Layer</figcation>
     </figure>
 </div>
