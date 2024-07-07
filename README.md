@@ -55,3 +55,6 @@ The diagram above illustrates the architecture of WaveGPT. The process involves:
 7. **Output Probabilities**: The final output probablities after applying softmax.
 
 
+## Data
+
+The data used to train the model is [OpenWebText Corpus](https://huggingface.co/datasets/Skylion007/openwebtext) that was used by used by OpenAI to train [GPT2](https://d4mucfpksywv.cloudfront.net/better-language-models/language_models_are_unsupervised_multitask_learners.pdf). For this project only first 250,000 documents have been taken. The data text file has not been uploaded to this repository as it is more than 1GB. Please refer to `data.py` to download the dataset to your local machine.
