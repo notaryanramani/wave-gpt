@@ -1,6 +1,6 @@
-import tiktoken
 from dataclasses import dataclass
 import torch
+from torch.utils.data import Dataset
 from typing import Tuple, List
 
 
@@ -14,31 +14,23 @@ class PreprocessParams:
 params = PreprocessParams()
 
 
-class DataPreprocess:
-    def __init__(self,
-        text:str,
-        tokenizer:str,
-        block_size:int = params.block_size,
-        batch_size:int = params.batch_size,
-        test_split:float = params.test_split
-    ):
-        self.text = text
-        self.batch_size = self.batch_size
-        self.block_size = self.block_size
+def train_val_split(tokens, val_split = params.split) -> Tuple[List[int], List[int]]:
+    split = int(len(tokens) * (1. - val_split))
+    train_set = tokens[:split]
+    val_set = tokens[split:]
+    return train_set, val_set
 
-        tok = tiktoken.get_encoding(tokenizer)
-        self.train_data, self.test_data = self.train_test_split(tok, test_split)
 
-    def train_test_split(self, tok, test_split)-> Tuple[List[int], ...]:
-        tokens = tok.encode(self.text)
-        split = int((1 - test_split) * len(tokens))
-        train_data = tokens[:split]
-        test_data = tokens[split:]
-        return train_data, test_data
+class OpenWebText(Dataset):
+    def __init__(self, tokens,  block_size = 128):
+        self.block_size = block_size
+        self.tokens = tokens
 
-    def get_data(self, split = "train") -> Tuple[torch.Tensor, ...]:
-        data = self.train_data if split == "train" else self.test_data
-        idx = torch.randint(len(data) - self.block_size, (self.batch_size, ))
-        x = torch.stack([torch.tensor(data[i.item():i.item()+self.block_size]) for i in idx])
-        y = torch.stack([torch.tensor(data[i.item()+1:i.item()+self.block_size+1]) for i in idx])
+    def __len__(self) -> int:
+        return len(self.tokens) // self.block_size
+
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
+        x = torch.tensor(self.tokens[idx: idx+self.block_size])
+        y = torch.tensor(self.tokens[idx+1: idx+self.block_size+1])
         return x, y
+
