@@ -10,6 +10,11 @@ import tiktoken
 from transformer import ModelHyperParams
 from tqdm import tqdm
 from utils import accuracy
+from dotenv import load_dotenv
+import warnings
+warnings.filterwarnings('ignore')
+
+load_dotenv()
 
 params = ModelHyperParams()
 tokenizer = tiktoken.get_encoding('r50k_base')
@@ -25,14 +30,10 @@ train_params = TrainParams()
 # setting up mlflow
 mlflow.set_tracking_uri('http://localhost:5000')
 mlflow.set_experiment('gpt-training')
-
 mlflow.start_run()
 
-
 # data preparation
-('starting data preparation...')
 data_file_path = 'data/data.txt'
-
 train_dataset = OpenWebText(data_file_path, split='train')
 val_dataset = OpenWebText(data_file_path, split = 'val')
 
@@ -62,13 +63,12 @@ for epoch in range(train_params.epochs):
         x = x.to(params.device)
         y = y.to(params.device)
         logits, loss = m(x, y)
-
         opt.zero_grad()
         loss.backward()
         opt.step()
 
         y_pred = torch.argmax(logits, dim=-1)
-        acc = accuracy(y.tolist(), y_pred.tolist())
+        acc = accuracy(y.view(-1).tolist(), y_pred.view(-1).tolist())
 
         pb.set_description(f'Train Epoch {epoch}/{train_params.epochs}')
         pb.set_postfix({'loss':loss.item(), 'accuracy' : acc})
@@ -92,7 +92,7 @@ for epoch in range(train_params.epochs):
             logits, loss = m(x, y)
 
         y_pred = torch.argmax(logits, dim=-1)
-        acc = accuracy(y.tolist(), y_pred.tolist())
+        acc = accuracy(y.view(-1).tolist(), y_pred.view(-1).tolist())
 
         pb.set_description(f'Val Epoch {epoch}/{train_params.epochs}')
         pb.set_postfix({'loss':loss.item(), 'accuracy' : acc})
@@ -105,8 +105,6 @@ for epoch in range(train_params.epochs):
             # val_accs.append(acc)
     
     m.train()
-
-
 
 # ending ml flow run
 mlflow.end_run()

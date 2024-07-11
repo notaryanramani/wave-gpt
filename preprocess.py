@@ -32,14 +32,14 @@ class OpenWebText(Dataset):
         self.tokenizer = tiktoken.get_encoding('r50k_base')
         self.file_size = os.path.getsize(text_file)
         self.chunk_size = chunk_size
-        if self.split == 'train':
-            self.random_start_chunk = torch.randint(0, int(0.8 * self.file_size) - self.chunk_size, (1,)).item()
-        else:
-            self.random_start_chunk = torch.randint(int(0.8 * self.file_size) , self.file_size - self.chunk_size, (1,)).item()
-
+        
     def _get_chuck(self):
         with open(self.file_path, 'rb') as f:
             with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+                if self.split == 'train':
+                    self.random_start_chunk = torch.randint(0, int(0.8 * self.file_size) - self.chunk_size, (1,)).item()
+                else:
+                    self.random_start_chunk = torch.randint(int(0.8 * self.file_size) , self.file_size - self.chunk_size, (1,)).item()
                 mm.seek(self.random_start_chunk)
                 block = mm.read(self.chunk_size)
                 self.text = block.decode('utf-8', errors='ignore').replace('\r', '')
