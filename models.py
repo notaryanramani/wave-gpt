@@ -21,15 +21,18 @@ class WaveGPT(nn.Module):
         reshape_factor:int = params.reshape_factor,
         dropout = params.dropout
     ):
+        super().__init__()
         self.token_emb = nn.Embedding(vocab_size, n_embd)
         self.pos_emb = nn.Embedding(block_size, n_embd)
 
         self.decoders = nn.Sequential(*[Decoder(n_heads, n_embd, dropout) for _ in range(n_layers)])
         self.wavenet = WaveNet(block_size, n_embd, wavenet_layers, reshape_factor)
+        self.beta = nn.Parameter(torch.zeros(1))
+
         self.ln = nn.LayerNorm(n_embd)
         self.linear = nn.Linear(n_embd, vocab_size)
 
-    def forward(self, x:torch.Tensor, y:torch.Tensor|None = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def forward(self, x:torch.Tensor, y:Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         B, T = x.size()
         x = self.token_emb(x)
         pos_emb = self.pos_emb(torch.arange(T).to(params.device))
@@ -37,7 +40,7 @@ class WaveGPT(nn.Module):
 
         wave_x = self.wavenet(x)
         gpt_x = self.decoders(x)
-        x = gpt_x + wave_x
+        x = (gpt_x * (1. - self.beta)) + (wave_x * self.beta)
 
         x = self.ln(x)
         logits = self.linear(x)
@@ -64,6 +67,7 @@ class GPT(nn.Module):
         block_size:int = params.block_size,
         dropout = params.dropout
     ):
+        super().__init__()
         self.token_emb = nn.Embedding(vocab_size, n_embd)
         self.pos_emb = nn.Embedding(block_size, n_embd)
 
@@ -71,7 +75,7 @@ class GPT(nn.Module):
         self.ln = nn.LayerNorm(n_embd)
         self.linear = nn.Linear(n_embd, vocab_size)
 
-    def forward(self, x:torch.Tensor, y:torch.Tensor|None = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def forward(self, x:torch.Tensor, y:Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         B, T = x.size()
         x = self.token_emb(x)
         pos_emb = self.pos_emb(torch.arange(T).to(params.device))

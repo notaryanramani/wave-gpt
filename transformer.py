@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 @dataclass
 class ModelHyperParams:
-    device:str = "mps" if torch.cuda.is_available() else "cpu"
+    device:str = "cuda" if torch.cuda.is_available() else "cpu"
     n_embd:int = 256
     n_heads:int = 4
     n_layers:int = 6
@@ -45,7 +45,7 @@ class MultiHeadAttention(nn.Module):
         assert n_embd % n_heads == 0, "n_heads should be divisible by n_embd"
         head_size = n_embd // n_heads
         self.heads = nn.ModuleList([Head(head_size, n_embd, dropout) for _ in range(n_heads)])
-        self.proj(n_embd, n_embd)
+        self.proj = nn.Linear(n_embd, n_embd)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
