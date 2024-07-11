@@ -7,7 +7,7 @@ data = dataset['train']
 
 os.makedirs('data', exist_ok=True)
 with open('data/data.txt', 'a', encoding='utf-8') as f:
-    for document in tqdm(data.take(250_000), total = 250_000):
+    for document in tqdm(data.take(100_000), total = 100_000):
         f.write(document['text'])
 
 print('saved data')
