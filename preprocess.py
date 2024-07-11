@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import torch
 from torch.utils.data import Dataset
-from typing import Tuple, List
+from typing import Tuple
 import os
 import tiktoken
 import mmap
@@ -15,13 +15,6 @@ class PreprocessParams:
 
 
 params = PreprocessParams()
-
-
-def train_val_split(tokens, val_split:float = params.split) -> Tuple[List[int], List[int]]:
-    split = int(len(tokens) * (1. - val_split))
-    train_set = tokens[:split]
-    val_set = tokens[split:]
-    return train_set, val_set
 
 
 class OpenWebText(Dataset):
@@ -47,10 +40,13 @@ class OpenWebText(Dataset):
             
 
     def __len__(self) -> int:
-        return self.file_size // self.chunk_size
+        if self.split == 'train':
+            return int(self.file_size // self.chunk_size * 0.8)
+        else:
+            return int(self.file_size // self.chunk_size * 0.2)
 
     def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
-        if idx % 1000 == 0:
+        if idx % ((self.file_size // self.chunk_size * 0.8) // 100) == 0:
             self.text = self._get_chuck()
             self.tokens = self.tokenizer.encode(self.text)
         r_idx = torch.randint(0, len(self.tokens) - self.block_size, (32, ))
