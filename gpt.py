@@ -1,8 +1,5 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from preprocess import train_val_split, OpenWebText
+from preprocess import OpenWebText
 from models import GPT
 import mlflow
 from dataclasses import dataclass, fields
@@ -12,17 +9,21 @@ from tqdm import tqdm
 from utils import accuracy
 from dotenv import load_dotenv
 import warnings
+from datetime import datetime
+import os
 warnings.filterwarnings('ignore')
 
 load_dotenv()
 
 params = ModelHyperParams()
 tokenizer = tiktoken.get_encoding('r50k_base')
+today_date = datetime.today().strftime('%d_%m_%y')
+os.makedirs('artifacts', exist_ok=True)
 
 @dataclass
 class TrainParams:
-    epochs:int = 5
-    eval_step:int = 1000
+    epochs:int = 2
+    eval_step:int = 100
     learning_rate:float = 3e-4
 
 train_params = TrainParams()
@@ -51,10 +52,11 @@ params_dict = {**model_params_dict, **train_params_dict}
 mlflow.log_params(params_dict)
 
 #training loop
-# train_losses = []
-# val_losses = []
-# train_accs = []
-# val_accs = []
+train_losses = []
+val_losses = []
+train_accs = []
+val_accs = []
+
 print('starting training...')
 for epoch in range(train_params.epochs):
     pb = tqdm(range(len(train_dataset)), ncols=100)
@@ -78,8 +80,8 @@ for epoch in range(train_params.epochs):
             mlflow.log_metric("train_loss", loss.item(), step=(step//train_params.eval_step))
             mlflow.log_metric("train_accuract", acc, step=(step//train_params.eval_step))
 
-            # train_losses.append(loss.item())
-            # train_accs.append(acc)
+        train_losses.append(loss.item())
+        train_accs.append(acc)
     
     m.eval()
     pb = tqdm(range(len(val_dataset)), ncols=100)
@@ -101,10 +103,17 @@ for epoch in range(train_params.epochs):
             mlflow.log_metric("val_loss", loss.item(), step=(step//train_params.eval_step))
             mlflow.log_metric("val_accuract", acc, step=(step//train_params.eval_step))
 
-            # val_losses.append(loss.item())
-            # val_accs.append(acc)
+        val_losses.append(loss.item())
+        val_accs.append(acc)
     
     m.train()
+
+    PATH = f'gpt_{today_date}_cp{epoch}.pth'
+    torch.save({
+        'epoch': epoch,
+        'model' : m.state_dict(),
+        'opt' : opt.state_dict()
+    }, PATH)
 
 # ending ml flow run
 mlflow.end_run()
