@@ -8,20 +8,20 @@
 ## Architecture
 
 ### WaveGPT
-<div style="text-align: center;">
+<center>
     <figure>
         <img src="img/WaveGPT.png" width=400><br>
     <figcaption>WaveGPT Architecture</figcation>
     </figure>
-</div>
+</center>
 
 ### GPT
-<div style="text-align: center;">
+<center>
     <figure>
         <img src="img/GPT.png" width=300><br>
     <figcaption >GPT Architecture <br><i><a href="https://en.m.wikipedia.org/wiki/File:Full_GPT_architecture.png">image source</a></i> </figcation>
     </figure>
-</div>
+</center>
 
 
 **Note:** We do not have the linear layer and output probablities at the end because we add the output of WaveNet.
@@ -29,20 +29,20 @@
 
 
 ### WaveNet
-<div style="text-align: center;">
+<center>
     <figure>
         <img src="img/WaveNet.png" width=300><br>
     <figcaption >WaveNet Architecture</figcation>
     </figure>
-</div>
+</center>
 
 ### WaveNet Layer
-<div style="text-align: center;">
+<center>
     <figure>
         <img src="img/WaveNetLayer.png" width=300><br>
     <figcaption >A single WaveNet Layer</figcation>
     </figure>
-</div>
+</center>
 <br>
 The diagram above illustrates the architecture of WaveGPT. The process involves:
 
