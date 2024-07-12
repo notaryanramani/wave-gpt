@@ -31,14 +31,12 @@ class WaveNet(nn.Module):
         self.wavenet = nn.Sequential(*[WaveNetLayer(n_embd, reshape_factor) for _ in range(n_layers)])
         assert block_size // (reshape_factor ** n_layers) > 0, "The reshape_factor ** n_layers  shouldn't greater than block_size to carry out convolutions"
         output_pooling_factor = block_size // (reshape_factor ** n_layers)
-        print(output_pooling_factor)
         if output_pooling_factor > 1:
             self.need_output_pooling = True
             self.output_linear = WaveNetLayer(n_embd, output_pooling_factor)
 
     def forward(self, x):
         x = self.wavenet(x)
-        print(x.shape)
         if self.need_output_pooling:
             x = self.output_linear(x)
         return x
