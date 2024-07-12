@@ -1,5 +1,5 @@
-from transformer import Decoder, ModelHyperParams
-from wavenet import WaveNet
+from src.transformer import Decoder, ModelHyperParams
+from src.wavenet import WaveNet
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

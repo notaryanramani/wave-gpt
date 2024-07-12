@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformer import ModelHyperParams
+from src.transformer import ModelHyperParams
 
 
 params = ModelHyperParams()

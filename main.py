@@ -1,10 +1,10 @@
 import torch
-from preprocess import OpenWebText
-from models import GPT, WaveGPT
+from src.preprocess import OpenWebText
+from src.models import GPT, WaveGPT
 # import mlflow
 from dataclasses import dataclass, fields
 import tiktoken
-from transformer import ModelHyperParams
+from src.transformer import ModelHyperParams
 from tqdm import tqdm
 import warnings
 from datetime import datetime
