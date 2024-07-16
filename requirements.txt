@@ -1,7 +1,6 @@
 tiktoken
 tqdm
 datasets
-mlflow
 matplotlib
 numpy
 scikit-learn

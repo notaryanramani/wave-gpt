@@ -24,22 +24,27 @@ A WaveNet is a mini-gpt model enhaced with the use of a wavenet.
 ### WaveGPT
 <center>
     <figure>
-        <img src="img/WaveGPT.png" width=400><br>
+        <img src="img/wavegpt_.jpg" width=300><br>
     <figcaption>WaveGPT Architecture</figcation>
     </figure>
 </center>
 
-### GPT
+### Element wise Combination
+
+We add a trainable parameter $\alpha$ to allow the model to dynamically adjust the contributions of the Decoder and WaveNet components during training. 
+
+$$\text{logits} = (g(x) \cdot \alpha) + (h(x) \cdot (1 - \alpha))$$
+
+where `g(x)` is the output from Decoder and `h(x)` is output from the WaveNet
+
+
+### GPT Decoder
 <center>
     <figure>
-        <img src="img/GPT.png" width=300><br>
-    <figcaption >GPT Architecture <br><i><a href="https://en.m.wikipedia.org/wiki/File:Full_GPT_architecture.png">image source</a></i> </figcation>
+        <img src="img/decoder_.png" width=300><br>
+    <figcaption>GPT Decoder</figcation>
     </figure>
 </center>
-
-
-**Note:** We do not have the linear layer and output probablities at the end because we add the output of WaveNet.
-
 
 
 ### WaveNet
@@ -75,7 +80,25 @@ The data used to train the model is [OpenWebText Corpus](https://huggingface.co/
 
 ## Usage
 
-This model is used to train a GPT and WaveNet from scratch. Please refer to `main.py` file for sample code.
+To train your own WaveGPT model, please refer to `wgpt_trainer.py`. To train a GPT along with WaveGPT to compare both models on your dataset, please refer to `compare.py`. 
+
+Use the saved metrics tensors in `artifacts folder` to plot graphs and evaluate your model.
+```python
+PATH = 'metrics-path'
+if os.path.exists(PATH):
+    metrics = torch.load(PATH)
+    metrics = {key:value.tolist() for key, value in metrics.items()}
+metrics.keys()
+
+# Output if you run compare.py: dict_keys(['gpt_tl', 'gpt_vl', 'gpt_ta', 'gpt_va', 'wave_tl', 'wave_vl', 'wave_ta', 'wave_va'])
+# Output if you run wgpt_trainer.py: dict_keys(['tl','vl','ta','va'])
+
+# t stands for train
+# v stands for validation
+# l stands for loss
+# a stands for accuracy
+```
+
 
 ## Contributing
 

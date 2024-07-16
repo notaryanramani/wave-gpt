@@ -1,8 +1,7 @@
 import torch
 from src.preprocess import OpenWebText
 from src.models import GPT, WaveGPT
-# import mlflow
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 import tiktoken
 from src.transformer import ModelHyperParams
 from tqdm import tqdm
@@ -18,18 +17,15 @@ tokenizer = tiktoken.get_encoding('r50k_base')
 today_date = datetime.today().strftime('%d_%m_%y')
 os.makedirs('artifacts', exist_ok=True)
 
+
 @dataclass
 class TrainParams:
-    epochs:int = 2
+    epochs:int = 5
     eval_step:int = 100
     learning_rate:float = 3e-4
 
 train_params = TrainParams()
 
-# setting up mlflow
-# mlflow.set_tracking_uri('http://localhost:5000')
-# mlflow.set_experiment('gpt-training')
-# mlflow.start_run()
 
 # data preparation
 data_file_path = 'data/data.txt'
@@ -45,20 +41,28 @@ wave_gpt = WaveGPT(vocab_size=tokenizer.n_vocab)
 wave_opt = torch.optim.AdamW(wave_gpt.parameters(), lr=train_params.learning_rate)
 wave_gpt.to(params.device)
 
+print(f'gpt model has {sum(p.numel() for p in gpt.parameters() if p.requires_grad)} parameters')
+print(f'wavegpt model has {sum(p.numel() for p in wave_gpt.parameters() if p.requires_grad)} parameters')
 
-# checkpoint = torch.load('artifacts/gpt_11_07_24_cp0.pth')
-# m.load_state_dict(checkpoint['model'])
-# m.to(params.device)
-# opt.load_state_dict(checkpoint['opt'])
-# last_epoch = checkpoint['epoch']
-last_epoch = -1
 
-# logging mkflow model params
-model_params_dict = {field.name: getattr(params, field.name)  for field in fields(ModelHyperParams)}
-train_params_dict = {field.name: getattr(train_params, field.name)  for field in fields(TrainParams)}
+GPT_PATH = 'gpt-model-path'
+WAVEGPT_PATH = 'wave-gpt-model-path'
+if os.path.exists(GPT_PATH) and os.path.exists(WAVEGPT_PATH):
+    gpt_dict = torch.load(GPT_PATH)
+    wgpt_dict = torch.load(WAVEGPT_PATH)
+    
+    if gpt_dict['epoch'] != wave_gpt['epoch']:
+        raise "Both models are at different training epoch"
+    
+    gpt.load_state_dict(gpt_dict['model'])
+    gpt_opt.load_state_dict(gpt_dict['opt'])
 
-params_dict = {**model_params_dict, **train_params_dict}
-# mlflow.log_params(params_dict)
+    wave_gpt.load_state_dict(wgpt_dict['model'])
+    wave_opt.load_state_dicy(wgpt_dict['opt'])
+
+else:
+    last_epoch = -1
+
 
 #training loop
 if os.path.exists(f'artifacts/training_metrics.pt'):
@@ -108,8 +112,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
         if step % train_params.eval_step == 0:
             pass
-            # mlflow.log_metric("gpt_train_loss", loss.item(), step=(step//train_params.eval_step))
-            # mlflow.log_metric("gpt_train_accuract", acc, step=(step//train_params.eval_step))
+            # add your code if you want a different evaluation at a time step
 
 
     gpt.eval()
@@ -139,10 +142,9 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
         if step % train_params.eval_step == 0:
             pass
-            # mlflow.log_metric("val_loss", loss.item(), step=(step//train_params.eval_step))
-            # mlflow.log_metric("val_accuract", acc, step=(step//train_params.eval_step))
+            # add your code if you want a different evaluation at a time step
+            
 
-    
     gpt.train()
     wave_gpt.train()
 
@@ -162,5 +164,3 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
     METRICS_PATH = f'artifacts/training_metrics.pt'
     torch.save({key:torch.tensor(metrics[key]) for key in metrics.keys()}, METRICS_PATH)
 
-# ending ml flow run
-# mlflow.end_run()
