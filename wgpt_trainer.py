@@ -40,7 +40,7 @@ m.to(params.device)
 print(f'model has {sum(p.numel() for p in m.parameters() if p.requires_grad)} parameters')
 
 
-PATH = 'artifacts\wavegpt_e_16_07_24_cp0.pth'
+PATH = 'artifacts/wavegpt_e_16_07_24_cp0.pth'
 if os.path.exists(PATH):
     checkpoint = torch.load(PATH)
     m.load_state_dict(checkpoint['model'])
@@ -87,7 +87,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
         if step % train_params.eval_step == 0:
             pass
-            
+
 
     m.eval()
     pb = tqdm(range(len(val_dataset)), leave=False)
@@ -109,7 +109,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
         if step % train_params.eval_step == 0:
             pass
-    
+
     m.train()
 
 
@@ -122,4 +122,3 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
     METRICS_PATH = f'artifacts/training_metrics_e.pt'
     torch.save({key:torch.tensor(metrics[key]) for key in metrics.keys()}, METRICS_PATH)
-
