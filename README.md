@@ -22,12 +22,8 @@ A WaveNet is a mini-gpt model enhaced with the use of a wavenet.
 ## Architecture
 
 ### WaveGPT
-<center>
-    <figure>
-        <img src="img/wavegpt_.jpg" width=300><br>
-    <figcaption>WaveGPT Architecture</figcation>
-    </figure>
-</center>
+<img src="img/wavegpt_.jpg" width=300><br>
+    
 
 ### Element wise Combination
 
@@ -39,30 +35,17 @@ where `g(x)` is the output from Decoder and `h(x)` is output from the WaveNet
 
 
 ### GPT Decoder
-<center>
-    <figure>
-        <img src="img/decoder_.png" width=300><br>
-    <figcaption>GPT Decoder</figcation>
-    </figure>
-</center>
+<img src="img/decoder_.png" width=300><br>
 
 
 ### WaveNet
-<center>
-    <figure>
-        <img src="img/WaveNet.png" width=300><br>
-    <figcaption >WaveNet Architecture</figcation>
-    </figure>
-</center>
+<img src="img/WaveNet.png" width=300><br>
+
 
 ### WaveNet Layer
-<center>
-    <figure>
-        <img src="img/WaveNetLayer.png" width=300><br>
-    <figcaption >A single WaveNet Layer</figcation>
-    </figure>
-</center>
-<br>
+<img src="img/WaveNetLayer.png" width=300><br><br>
+
+
 The diagram above illustrates the architecture of WaveGPT. The process involves:
 
 1. **Input Sequence**: The input sequence of shape (B, T).
@@ -82,7 +65,7 @@ The data used to train the model is [OpenWebText Corpus](https://huggingface.co/
 
 To train your own WaveGPT model, please refer to `wgpt_trainer.py`. To train a GPT along with WaveGPT to compare both models on your dataset, please refer to `compare.py`. 
 
-Use the saved metrics tensors in `artifacts folder` to plot graphs and evaluate your model.
+Use the saved metrics tensors in `artifacts` folder to plot graphs and evaluate your model.
 ```python
 PATH = 'metrics-path'
 if os.path.exists(PATH):
