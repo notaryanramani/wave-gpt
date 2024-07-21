@@ -20,8 +20,8 @@ os.makedirs('artifacts', exist_ok=True)
 
 @dataclass
 class TrainParams:
-    epochs:int = 5
-    eval_step:int = 500
+    epochs:int = 4
+    eval_step:int = 80
     learning_rate:float = 3e-4
 
 train_params = TrainParams()
@@ -40,7 +40,7 @@ m.to(params.device)
 print(f'model has {sum(p.numel() for p in m.parameters() if p.requires_grad)} parameters')
 
 
-PATH = 'artifacts\wavegpt_e_16_07_24_cp0.pth'
+PATH = 'artifacts\wavegpt_e_20_07_24_cp6.pth'
 if os.path.exists(PATH):
     checkpoint = torch.load(PATH)
     m.load_state_dict(checkpoint['model'])
