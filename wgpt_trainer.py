@@ -87,7 +87,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
         if step % train_params.eval_step == 0:
             pass
-            
+
 
     m.eval()
     pb = tqdm(range(len(val_dataset)), leave=False)
@@ -109,7 +109,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
         if step % train_params.eval_step == 0:
             pass
-    
+
     m.train()
 
 
@@ -122,4 +122,3 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
     METRICS_PATH = f'artifacts/training_metrics_e.pt'
     torch.save({key:torch.tensor(metrics[key]) for key in metrics.keys()}, METRICS_PATH)
-

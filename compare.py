@@ -50,15 +50,17 @@ WAVEGPT_PATH = 'wave-gpt-model-path'
 if os.path.exists(GPT_PATH) and os.path.exists(WAVEGPT_PATH):
     gpt_dict = torch.load(GPT_PATH)
     wgpt_dict = torch.load(WAVEGPT_PATH)
-    
-    if gpt_dict['epoch'] != wave_gpt['epoch']:
-        raise "Both models are at different training epoch"
-    
+
+    if gpt_dict['epoch'] != wgpt_dict['epoch']:
+        raise Exception("Both models are at different training epoch")
+
     gpt.load_state_dict(gpt_dict['model'])
     gpt_opt.load_state_dict(gpt_dict['opt'])
 
     wave_gpt.load_state_dict(wgpt_dict['model'])
-    wave_opt.load_state_dicy(wgpt_dict['opt'])
+    wave_opt.load_state_dict(wgpt_dict['opt'])
+
+    last_epoch = gpt_dict['epoch']
 
 else:
     last_epoch = -1
@@ -143,7 +145,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
         if step % train_params.eval_step == 0:
             pass
             # add your code if you want a different evaluation at a time step
-            
+
 
     gpt.train()
     wave_gpt.train()
@@ -163,4 +165,3 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
     METRICS_PATH = f'artifacts/training_metrics.pt'
     torch.save({key:torch.tensor(metrics[key]) for key in metrics.keys()}, METRICS_PATH)
-

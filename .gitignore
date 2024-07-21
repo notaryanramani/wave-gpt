@@ -167,3 +167,4 @@ pyrightconfig.json
 data/
 mlruns/
 artifacts/
+*.ipynb
