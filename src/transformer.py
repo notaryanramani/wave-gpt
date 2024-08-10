@@ -20,41 +20,6 @@ class ModelHyperParams:
 params = ModelHyperParams()
 
 
-class Head(nn.Module):
-    def __init__(self, head_size:int, n_embd:int = params.n_embd, dropout:float = params.dropout):
-        super().__init__()
-        self.q = nn.Linear(n_embd, head_size)
-        self.k = nn.Linear(n_embd, head_size)
-        self.v = nn.Linear(n_embd, head_size)
-        self.dropout = dropout
-
-    def forward(self, x:torch.Tensor) -> torch.Tensor:
-        B, T, C = x.size()
-
-        q = self.q(x)
-        k = self.k(x)
-        v = self.v(x)
-
-        out = F.scaled_dot_product_attention(q, k, v, is_causal=True, dropout_p=self.dropout)
-        return out
-
-
-class MultiHeadAttention(nn.Module):
-    def __init__(self, n_heads:int = params.n_heads, n_embd:int = params.n_embd, dropout:float = params.dropout):
-        super().__init__()
-        assert n_embd % n_heads == 0, "n_heads should be divisible by n_embd"
-        head_size = n_embd // n_heads
-        self.heads = nn.ModuleList([Head(head_size, n_embd, dropout) for _ in range(n_heads)])
-        self.proj = nn.Linear(n_embd, n_embd)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x:torch.Tensor) -> torch.Tensor:
-        x = torch.cat([h(x) for h in self.heads], dim=-1)
-        x = self.proj(x)
-        x = self.dropout(x)
-        return x
-
-
 class FeedForward(nn.Module):
     def __init__(self, n_embd:int = params.n_embd):
         super().__init__()
@@ -73,15 +38,19 @@ class FeedForward(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, n_heads:int = params.n_heads, n_embd:int = params.n_embd, dropout:float = params.dropout):
         super().__init__()
-        self.mha = MultiHeadAttention(n_heads, n_embd, dropout)
+        self.mha = nn.MultiheadAttention(embed_dim=n_embd, num_heads=n_heads, dropout=dropout, batch_first=True)
         self.ffn = FeedForward(n_embd)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
         self.dropout = nn.Dropout(dropout)
+        self.register_buffer('mask', torch.tril(torch.ones((params.block_size, params.block_size), dtype=torch.float32)))
+
 
     def forward(self, x:torch.Tensor) -> torch.Tensor:
+        B, T, C = x.size()
         x = self.ln1(x)
-        x = x + self.mha(x)
+        att_output, _ = self.mha(x, x, x, is_causal=True, need_weights=False , attn_mask=self.mask[:T, :T])
+        x = x + att_output
         x = self.ln2(x)
         x = x + self.ffn(x)
         out = self.dropout(x)
