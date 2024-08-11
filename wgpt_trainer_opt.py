@@ -6,6 +6,7 @@ import tiktoken
 from src.transformer import ModelHyperParams
 from tqdm import tqdm
 import time
+torch.set_float32_matmul_precision('high')
 
 
 params = ModelHyperParams()
@@ -31,7 +32,7 @@ val_dataset = OpenWebText(data_file_path, split = 'val')
 m = WaveGPT(vocab_size=tokenizer.n_vocab)
 opt = torch.optim.AdamW(m.parameters(), lr=train_params.learning_rate)
 m.to(params.device)
-# m = torch.compile(m)
+m = torch.compile(m)
 print(f'model has {sum(p.numel() for p in m.parameters() if p.requires_grad)} parameters')
 
 
@@ -47,7 +48,8 @@ for epoch in range(train_params.epochs):
         y = y.to(params.device)
 
         t1 = time.time()
-        logits, loss = m(x, y)
+        with torch.autocast(device_type=params.device, dtype=torch.bfloat16):
+            logits, loss = m(x, y)
         opt.zero_grad()
         loss.backward()
         opt.step()
