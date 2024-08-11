@@ -9,7 +9,7 @@ import mmap
 
 @dataclass
 class PreprocessParams:
-    block_size:int = 128
+    block_size:int = 256
     batch_size:int = 32
     split:float = 0.2
 
@@ -18,13 +18,13 @@ params = PreprocessParams()
 
 
 class OpenWebText(Dataset):
-    def __init__(self, text_file, split, block_size = 128, chunk_size = 25000):
+    def __init__(self, text_file, split, block_size = params.block_size):
         self.block_size = block_size
         self.file_path = text_file
         self.split = split
         self.tokenizer = tiktoken.get_encoding('r50k_base')
         self.file_size = os.path.getsize(text_file)
-        self.chunk_size = chunk_size
+        self.chunk_size = block_size * 256
         if self.split == 'train':
             self.start_chunk = 0
         else:

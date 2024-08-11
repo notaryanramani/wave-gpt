@@ -7,7 +7,7 @@ params = ModelHyperParams()
 
 
 class WaveNetLayer(nn.Module):
-    def __init__(self, n_embd:int = params.n_embd, reshape_factor: int = 4):
+    def __init__(self, n_embd:int, reshape_factor: int):
         super().__init__()
         fan_in = n_embd * reshape_factor
         self.layernorm = nn.LayerNorm(fan_in)
@@ -32,6 +32,7 @@ class WaveNet(nn.Module):
         assert block_size // (reshape_factor ** n_layers) > 0, "The reshape_factor ** n_layers  shouldn't greater than block_size to carry out convolutions"
         output_pooling_factor = block_size // (reshape_factor ** n_layers)
         if output_pooling_factor > 1:
+            print(f"requires output pooling of {output_pooling_factor}")
             self.need_output_pooling = True
             self.output_linear = WaveNetLayer(n_embd, output_pooling_factor)
 

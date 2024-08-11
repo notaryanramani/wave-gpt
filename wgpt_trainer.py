@@ -1,9 +1,7 @@
 import torch
-from src.preprocess import OpenWebText
-from src.models import WaveGPT
+from src import WaveGPT, OpenWebText, ModelHyperParams
 from dataclasses import dataclass
 import tiktoken
-from src.transformer import ModelHyperParams
 from tqdm import tqdm
 import warnings
 from datetime import datetime

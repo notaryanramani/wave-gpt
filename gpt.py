@@ -1,9 +1,7 @@
 import torch
-from src.preprocess import OpenWebText
-from src.models import GPT
+from src import GPT, OpenWebText, ModelHyperParams
 from dataclasses import dataclass
 import tiktoken
-from src.transformer import ModelHyperParams
 from tqdm import tqdm
 import time
 
