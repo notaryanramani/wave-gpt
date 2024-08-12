@@ -61,6 +61,14 @@ The diagram above illustrates the architecture of WaveGPT. The process involves:
 
 The data used to train the model is [OpenWebText Corpus](https://huggingface.co/datasets/Skylion007/openwebtext) that was used by used by OpenAI to train [GPT2](https://d4mucfpksywv.cloudfront.net/better-language-models/language_models_are_unsupervised_multitask_learners.pdf). For this project only first 250,000 documents have been taken. The data text file has not been uploaded to this repository as it is more than 1GB. Please refer to `data.py` to download the dataset to your local machine.
 
+## Results
+
+The model was trained for `10 epochs` with `6064 steps` each i.e `24,838,144 tokens` per epoch with a `constant learning rate of 3e-4`. Here are the results:
+
+![Loss.png](img/Loss.png)
+
+The model is not overfitting but can be improved with hyperparameters or with learning rate scheduler.
+
 ## Usage
 
 To train your own WaveGPT model, please refer to `wgpt_trainer.py`. To train a GPT along with WaveGPT to compare both models on your dataset, please refer to `compare.py`. 
