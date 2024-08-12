@@ -27,12 +27,18 @@ class OpenWebText(Dataset):
         self.chunk_size = block_size * 256
         if self.split == 'train':
             self.start_chunk = 0
+            self.initial_chunk = self.start_chunk
+            self.end_chunk = int(0.8 * self.file_size) - self.chunk_size
         else:
             self.start_chunk = int(0.8 * self.file_size)
+            self.initial_chunk = self.start_chunk
+            self.end_chunk = self.file_size - self.chunk_size
         
     def _get_chuck(self):
         with open(self.file_path, 'rb') as f:
             with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+                if self.start_chunk > self.end_chunk:
+                    self.start_chunk = self.initial_chunk
                 mm.seek(self.start_chunk)
                 block = mm.read(self.chunk_size)
                 text = block.decode('utf-8', errors='ignore').replace('\r', '')

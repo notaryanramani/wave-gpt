@@ -66,7 +66,7 @@ print(f'running on {params.device}')
 print('starting training...')
 for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
     pb = tqdm(range(len(train_dataset)), leave=False)
-    pb.set_description(f'Train Epoch {epoch}/{train_params.epochs + last_epoch + 1}')
+    pb.set_description(f'Train Epoch {epoch+1}/{train_params.epochs + last_epoch + 1}')
     for step in pb:
         x, y = train_dataset[step]
         x = x.to(params.device)
@@ -89,7 +89,7 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
 
     m.eval()
     pb = tqdm(range(len(val_dataset)), leave=False)
-    pb.set_description(f'Val Epoch {epoch}/{train_params.epochs + last_epoch + 1}')
+    pb.set_description(f'Val Epoch {epoch+1}/{train_params.epochs + last_epoch + 1}')
     for step in pb:
         x, y = val_dataset[step]
         x = x.to(params.device)
