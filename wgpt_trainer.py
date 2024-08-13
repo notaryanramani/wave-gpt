@@ -25,11 +25,16 @@ train_params = TrainParams()
 
 
 # data preparation
-data_file_path = 'data/data.txt'
-train_dataset = OpenWebText(data_file_path, split='train')
-val_dataset = OpenWebText(data_file_path, split = 'val')
+os.makedirs('data', exist_ok=True)
+DATA_PATH = os.path.join(os.getcwd(), 'data/data.txt')
+if not os.path.exists(DATA_PATH):
+    from src import download_data
+    download_data(DATA_PATH)
+train_dataset = OpenWebText(DATA_PATH, split='train')
+val_dataset = OpenWebText(DATA_PATH, split = 'val')
 
 BATCH_TOKENS = train_dataset.block_size * 32
+
 
 # model initialization
 m = WaveGPT(vocab_size=tokenizer.n_vocab)
