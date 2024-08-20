@@ -71,7 +71,7 @@ The model is not overfitting but can be improved with hyperparameters or with le
 
 ## Usage
 
-To train your own WaveGPT model, please refer to `wgpt_trainer.py`. To train a GPT along with WaveGPT to compare both models on your dataset, please refer to `compare.py`. 
+To train your own WaveGPT model, please refer to `main.py`. To train a GPT along with WaveGPT to compare both models on your dataset, please refer to `compare.py`. 
 
 Use the saved metrics tensors in `artifacts` folder to plot graphs and evaluate your model.
 ```python
