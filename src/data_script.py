@@ -8,6 +8,6 @@ def download_data(PATH, TAKE = 100_000):
 
     with open(PATH, 'a', encoding='utf-8') as f:
         for document in tqdm(data.take(TAKE), total = TAKE):
-            f.write(document['text'])
+            f.write('<|endoftext|>' + document['text'])
 
     print('saved data')

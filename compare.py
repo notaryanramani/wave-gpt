@@ -1,14 +1,16 @@
 import torch
-from src.preprocess import OpenWebText
-from src.models import GPT, WaveGPT
-from dataclasses import dataclass
-import tiktoken
-from src.transformer import ModelHyperParams
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 import warnings
 from datetime import datetime
 import os
-from sklearn.metrics import accuracy_score
+from dataclasses import dataclass
+import tiktoken
+
+from src.data_loader import OpenWebText
+from src.models import GPT, WaveGPT
+from src.transformer import ModelHyperParams
+
 warnings.filterwarnings('ignore')
 
 
@@ -20,7 +22,8 @@ os.makedirs('artifacts', exist_ok=True)
 
 @dataclass
 class TrainParams:
-    epochs:int = 5
+    epochs:int = 10
+    warmup_epochs:int = 3
     eval_step:int = 100
     learning_rate:float = 3e-4
 
@@ -28,18 +31,26 @@ train_params = TrainParams()
 
 
 # data preparation
-data_file_path = 'data/data.txt'
-train_dataset = OpenWebText(data_file_path, split='train')
-val_dataset = OpenWebText(data_file_path, split = 'val')
+os.makedirs('data', exist_ok=True)
+DATA_PATH = os.path.join(os.getcwd(), 'data/data.txt')
+if not os.path.exists(DATA_PATH):
+    from src import download_data
+    download_data(DATA_PATH, TAKE=250_000)
+train_dataset = OpenWebText(DATA_PATH, split='train')
+val_dataset = OpenWebText(DATA_PATH, split = 'val')
 
 # model initialization
 gpt = GPT(vocab_size=tokenizer.n_vocab)
 gpt_opt = torch.optim.AdamW(gpt.parameters(), lr=train_params.learning_rate)
+gpt_lrs = CosineAnnealingLR(gpt_opt, T_max= train_params.epochs - train_params.warmup_epochs, eta_min=3e-8)
 gpt.to(params.device)
+gpt = torch.compile(gpt)
 
 wave_gpt = WaveGPT(vocab_size=tokenizer.n_vocab)
 wave_opt = torch.optim.AdamW(wave_gpt.parameters(), lr=train_params.learning_rate)
+wave_lrs = CosineAnnealingLR(wave_opt, T_max= train_params.epochs - train_params.warmup_epochs, eta_min=3e-8)
 wave_gpt.to(params.device)
+wave_gpt = torch.compile(wave_gpt)
 
 print(f'gpt model has {sum(p.numel() for p in gpt.parameters() if p.requires_grad)} parameters')
 print(f'wavegpt model has {sum(p.numel() for p in wave_gpt.parameters() if p.requires_grad)} parameters')
@@ -67,19 +78,15 @@ else:
 
 
 #training loop
-if os.path.exists(f'artifacts/training_metrics.pt'):
-    metrics = torch.load(f'artifacts/training_metrics.pt')
+if os.path.exists(f'artifacts-path'):
+    metrics = torch.load(f'artifacts-path')
     metrics = {key:value.tolist() for key, value in metrics.items()}
 else:
     metrics = {
         'gpt_tl' : [],
         'gpt_vl' : [],
-        'gpt_ta' : [],
-        'gpt_va' : [],
         'wave_tl': [],
         'wave_vl': [],
-        'wave_ta': [],
-        'wave_va': [],
     }
 
 print(f'running on {params.device}')
@@ -87,34 +94,33 @@ print('starting training...')
 for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
     pb = tqdm(range(len(train_dataset)), leave=False)
     pb.set_description(f'Train Epoch {epoch}/{train_params.epochs}')
+    if epoch > train_params.warmup_epochs:
+        gpt_lrs.step()
+        wave_lrs.step()
     for step in pb:
-        x, y = train_dataset[step]
+        x, x_prev, y = train_dataset[step]
         x = x.to(params.device)
         y = y.to(params.device)
+        x_prev = x_prev.to(params.device)
 
-        g_logits, g_loss = gpt(x, y)
+        with torch.autocast(device_type=params.device, dtype=torch.bfloat16):
+            g_logits, g_loss = gpt(x, y)
         gpt_opt.zero_grad()
         g_loss.backward()
         gpt_opt.step()
-        y_pred = torch.argmax(g_logits, dim=-1)
-        g_acc = float(accuracy_score(y.view(-1).tolist(), y_pred.view(-1).tolist()))
         metrics['gpt_tl'].append(g_loss.item())
-        metrics['gpt_ta'].append(g_acc)
 
-        w_logits, w_loss = wave_gpt(x, y)
+        if torch.rand(1).item() < 0.1:
+            x_prev = None
+
+        with torch.autocast(device_type=params.device, dtype=torch.bfloat16):
+            w_logits, w_loss = wave_gpt(x, x_prev, y)
         wave_opt.zero_grad()
         w_loss.backward()
         wave_opt.step()
-        y_pred = torch.argmax(w_logits, dim=-1)
-        w_acc = float(accuracy_score(y.view(-1).tolist(), y_pred.view(-1).tolist()))
         metrics['wave_tl'].append(w_loss.item())
-        metrics['wave_ta'].append(w_acc)
 
-        pb.set_postfix({'gpt_loss': g_loss.item(), 'gpt_acc': g_acc,'wgpt_loss':w_loss.item(), 'wgpt_acc' : w_acc})
-
-        if step % train_params.eval_step == 0:
-            pass
-            # add your code if you want a different evaluation at a time step
+        pb.set_postfix({'wavegpt_loss':w_loss.item(), 'gpt_loss': g_loss.item()})
 
 
     gpt.eval()
@@ -122,36 +128,29 @@ for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
     pb = tqdm(range(len(val_dataset)), leave=False)
     pb.set_description(f'Val Epoch {epoch}/{train_params.epochs}')
     for step in pb:
-        x, y = val_dataset[step]
+        x, x_prev, y = val_dataset[step]
         x = x.to(params.device)
         y = y.to(params.device)
+        x_prev = x_prev.to(params.device)
 
         with torch.no_grad():
             logits, g_loss = gpt(x, y)
-        y_pred = torch.argmax(logits, dim=-1)
-        g_acc = float(accuracy_score(y.view(-1).tolist(), y_pred.view(-1).tolist()))
         metrics['gpt_vl'].append(g_loss.item())
-        metrics['gpt_va'].append(g_acc)
+
+        if torch.rand(1).item() < 0.1:
+            x_prev = None
+
 
         with torch.no_grad():
-            logits, w_loss = wave_gpt(x, y)
-        y_pred = torch.argmax(logits, dim=-1)
-        w_acc = float(accuracy_score(y.view(-1).tolist(), y_pred.view(-1).tolist()))
-        metrics['wave_vl'].append(w_loss.item())
-        metrics['wave_va'].append(w_acc)
+            logits, w_loss = wave_gpt(x, x_prev, y)
 
-        pb.set_postfix({'gpt_loss': g_loss.item(), 'gpt_acc': g_acc,'wgpt_loss':w_loss.item(), 'wgpt_acc' : w_acc})
-
-        if step % train_params.eval_step == 0:
-            pass
-            # add your code if you want a different evaluation at a time step
-
+        pb.set_postfix({'wavegpt_loss':w_loss.item(), 'gpt_loss': g_loss.item(),})
 
     gpt.train()
     wave_gpt.train()
 
-    GPT_PATH = f'artifacts/gpt_{today_date}_cp{epoch}.pth'
-    WAVEGPT_PATH = f'artifacts/wavegpt_{today_date}_cp{epoch}.pth'
+    GPT_PATH = f'artifacts/gpt_{today_date}_cp{epoch+1}.pth'
+    WAVEGPT_PATH = f'artifacts/wavegpt_{today_date}_cp{epoch+1}.pth'
     torch.save({
         'epoch': epoch,
         'model' : gpt.state_dict(),

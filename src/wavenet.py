@@ -29,7 +29,7 @@ class WaveNet(nn.Module):
         super().__init__()
         self.need_output_pooling = False
         self.wavenet = nn.Sequential(*[WaveNetLayer(n_embd, reshape_factor) for _ in range(n_layers)])
-        assert block_size // (reshape_factor ** n_layers) > 0, "The reshape_factor ** n_layers  shouldn't greater than block_size to carry out convolutions"
+        assert block_size // (reshape_factor ** n_layers) > 0, "The reshape_factor ** n_layers shouldn't greater than block_size to carry out convolutions"
         output_pooling_factor = block_size // (reshape_factor ** n_layers)
         if output_pooling_factor > 1:
             print(f"requires output pooling of {output_pooling_factor}")

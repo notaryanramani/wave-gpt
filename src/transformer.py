@@ -7,12 +7,12 @@ from dataclasses import dataclass
 @dataclass
 class ModelHyperParams:
     device:str = "cuda" if torch.cuda.is_available() else "cpu"
-    n_embd:int = 512
+    n_embd:int = 256
     n_heads:int = 8
     n_layers:int = 6
-    wavenet_layers:int = 4
+    wavenet_layers:int = 3
     reshape_factor:int = 4
-    block_size:int = 256
+    block_size:int = 128
     batch_size:int = 32
     dropout:float = 0.2
 

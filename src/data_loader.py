@@ -5,32 +5,27 @@ from typing import Tuple
 import os
 import tiktoken
 import mmap
+from .transformer import ModelHyperParams
 
 
-@dataclass
-class PreprocessParams:
-    block_size:int = 256
-    batch_size:int = 32
-    split:float = 0.2
-
-
-params = PreprocessParams()
+params = ModelHyperParams()
 
 
 class OpenWebText(Dataset):
-    def __init__(self, text_file, split, block_size = params.block_size):
+    def __init__(self, text_file, split, block_size = params.block_size, batch_size = params.batch_size):
         self.block_size = block_size
+        self.batch_size = batch_size
         self.file_path = text_file
         self.split = split
         self.tokenizer = tiktoken.get_encoding('r50k_base')
         self.file_size = os.path.getsize(text_file)
-        self.chunk_size = block_size * 256
+        self.chunk_size = block_size * batch_size * 8 
         if self.split == 'train':
             self.start_chunk = 0
             self.initial_chunk = self.start_chunk
-            self.end_chunk = int(0.8 * self.file_size) - self.chunk_size
+            self.end_chunk = int(0.9 * self.file_size) - self.chunk_size
         else:
-            self.start_chunk = int(0.8 * self.file_size)
+            self.start_chunk = int(0.9 * self.file_size)
             self.initial_chunk = self.start_chunk
             self.end_chunk = self.file_size - self.chunk_size
         
@@ -48,15 +43,16 @@ class OpenWebText(Dataset):
 
     def __len__(self) -> int:
         if self.split == 'train':
-            return int(self.file_size // self.chunk_size * (1 - params.split))
+            return int(self.file_size // self.chunk_size * (0.9))
         else:
-            return int(self.file_size // self.chunk_size * params.split)
+            return int(self.file_size // self.chunk_size * (0.1))
 
     def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
         text = self._get_chuck()
         tokens = self.tokenizer.encode(text)
-        r_idx = torch.randint(0, len(tokens) - self.block_size, (32, ))
+        r_idx = torch.randint(self.block_size, len(tokens) - self.block_size, (self.batch_size, ))
         x = torch.stack([torch.tensor(tokens[i: i+self.block_size]) for i in r_idx])
+        prev_x = torch.stack([torch.tensor(tokens[i-self.block_size: i]) for i in r_idx])
         y = torch.stack([torch.tensor(tokens[i+1: i+self.block_size+1]) for i in r_idx])
-        return x, y
+        return x, prev_x, y
 

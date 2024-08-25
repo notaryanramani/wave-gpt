@@ -32,23 +32,32 @@ class WaveGPT(nn.Module):
         self.ln = nn.LayerNorm(n_embd)
         self.linear = nn.Linear(n_embd, vocab_size)
 
-    def forward(self, x:torch.Tensor, y:Optional[torch.Tensor] = None) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    def forward(
+        self, 
+        x:torch.Tensor, 
+        x_prev:Optional[torch.tensor] = None, 
+        y:Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         B, T = x.size()
         x = self.token_emb(x)
+
         pos_emb = self.pos_emb(torch.arange(T).to(params.device))
         x = x + pos_emb
-
-        wave_x = self.wavenet(x)
+        
         gpt_x = self.decoders(x)
-        x = (gpt_x * (1. - self.beta)) + (wave_x * self.beta)
+
+        if x_prev is not None:
+            x_prev = self.token_emb(x_prev)
+            x_prev = x_prev + pos_emb
+            wave_x = self.wavenet(x)
+            x = (gpt_x * (1. - self.beta)) + (wave_x * self.beta)
 
         x = self.ln(x)
         logits = self.linear(x)
 
+        loss = None
         if y is not None:
             loss = F.cross_entropy(logits.view(B*T, -1), y.view(B*T))
-        else:
-            loss = None
 
         return logits, loss
 
