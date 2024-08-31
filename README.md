@@ -1,7 +1,7 @@
 # WaveGPT: A GPT Model Enhanced with WaveNet
 
 # Contents
-- [What is a Wave Net](#Introduction)
+- [Introduction](#Introduction)
 - [Archicture](#architecture)
 - [Data](#data)
 - [Usage](#usage)
@@ -10,7 +10,7 @@
 
 ## Introduction
 
-A WaveNet is a mini-gpt model enhaced with the use of a wavenet.
+A WaveGPT is a mini-gpt model enhaced with the use of a wavenet.
 
 #### What is a GPT?  
  GPT, or Generative Pre-trained Transformer, is a type of deep learning model known for generating human-like text based on input prompts. It uses a Transformer architecture and is trained on vast amounts of text data to understand and generate natural language

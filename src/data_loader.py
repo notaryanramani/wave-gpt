@@ -12,28 +12,21 @@ params = ModelHyperParams()
 
 
 class OpenWebText(Dataset):
-    def __init__(self, text_file, split, block_size = params.block_size, batch_size = params.batch_size):
+    def __init__(self, text_file, block_size = params.block_size, batch_size = params.batch_size):
         self.block_size = block_size
         self.batch_size = batch_size
         self.file_path = text_file
-        self.split = split
         self.tokenizer = tiktoken.get_encoding('r50k_base')
         self.file_size = os.path.getsize(text_file)
         self.chunk_size = block_size * batch_size * 8 
-        if self.split == 'train':
-            self.start_chunk = 0
-            self.initial_chunk = self.start_chunk
-            self.end_chunk = int(0.9 * self.file_size) - self.chunk_size
-        else:
-            self.start_chunk = int(0.9 * self.file_size)
-            self.initial_chunk = self.start_chunk
-            self.end_chunk = self.file_size - self.chunk_size
+        self.start_chunk = 0
+
         
     def _get_chuck(self):
         with open(self.file_path, 'rb') as f:
             with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                if self.start_chunk > self.end_chunk:
-                    self.start_chunk = self.initial_chunk
+                if self.start_chunk > self.file_size - self.chunk_size:
+                    self.start_chunk = 0
                 mm.seek(self.start_chunk)
                 block = mm.read(self.chunk_size)
                 text = block.decode('utf-8', errors='ignore').replace('\r', '')
@@ -42,12 +35,9 @@ class OpenWebText(Dataset):
             
 
     def __len__(self) -> int:
-        if self.split == 'train':
-            return int(self.file_size // self.chunk_size * (0.9))
-        else:
-            return int(self.file_size // self.chunk_size * (0.1))
+        return int(self.file_size // self.chunk_size)
 
-    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         text = self._get_chuck()
         tokens = self.tokenizer.encode(text)
         r_idx = torch.randint(self.block_size, len(tokens) - self.block_size, (self.batch_size, ))

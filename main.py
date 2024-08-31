@@ -28,15 +28,9 @@ train_params = TrainParams()
 
 
 # data preparation
-os.makedirs('data', exist_ok=True)
-DATA_PATH = os.path.join(os.getcwd(), 'data/data.txt')
-if not os.path.exists(DATA_PATH):
-    from src import download_data
-    download_data(DATA_PATH)
-train_dataset = OpenWebText(DATA_PATH, split='train')
-val_dataset = OpenWebText(DATA_PATH, split = 'val')
-
-BATCH_TOKENS = train_dataset.block_size * train_dataset.batch_size
+train_files = [f for f in os.listdir('data/') if f.startswith('train')]
+val_files = [f for f in os.listdir('data/') if f.startswith('val')]
+BATCH_TOKENS = params.block_size * params.batch_size
 
 
 # model initialization
@@ -49,78 +43,68 @@ torch.cuda.synchronize()
 print(f'model has {sum(p.numel() for p in m.parameters() if p.requires_grad)} parameters')
 
 
-PATH = 'model-path'
-if os.path.exists(PATH):
-    checkpoint = torch.load(PATH)
-    m.load_state_dict(checkpoint['model'])
-    m.to(params.device)
-    opt.load_state_dict(checkpoint['opt'])
-    last_epoch = checkpoint['epoch']
-else:
-    last_epoch = -1
-
-
-if os.path.exists(f'artifacts-path'):
-    metrics = torch.load(f'artifacts-path')
-    metrics = {key:value.tolist() for key, value in metrics.items()}
-else:
-    metrics = {
-        'tl': [],
-        'vl': [],
-    }
+metrics = {
+    'tl': [],
+    'vl': [],
+}
 
 
 #training loop
 print(f'running on {params.device}')
 print('starting training...')
-for epoch in range(last_epoch + 1, train_params.epochs + last_epoch + 1):
-    pb = tqdm(range(len(train_dataset)), leave=False)
-    pb.set_description(f'Train Epoch {epoch+1}/{train_params.epochs + last_epoch + 1}')
-    if epoch > train_params.warmup_epochs:
+for epoch in range(10):
+    if not epoch < train_params.warmup_epochs:
         lrs.step()
-    for step in pb:
-        x, x_prev, y = train_dataset[step]
-        x = x.to(params.device)
-        y = y.to(params.device)
-        x_prev = x_prev.to(params.device)
-        if torch.rand(1).item() < 0.1:
-            x_prev = None
-        t1 = time.time()
-        with torch.autocast(device_type=params.device, dtype=torch.bfloat16):
-            logits, loss = m(x, x_prev, y)
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
-        torch.cuda.synchronize()
-        t2 = time.time()
-        t3 = (t2-t1) * 1000
-        toks_per_sec = (BATCH_TOKENS) / (t2 - t1)
-
-        metrics['tl'].append(loss.item())
-
-        pb.set_postfix({'loss':loss.item(), 'time' : f'{t3:.4f}ms', 'toks/s' : f'{toks_per_sec:.4f}'})
-
-
-    m.eval()
-    pb = tqdm(range(len(val_dataset)), leave=False)
-    pb.set_description(f'Val Epoch {epoch+1}/{train_params.epochs + last_epoch + 1}')
-    for step in pb:
-        x, x_prev, y = train_dataset[step]
-        x = x.to(params.device)
-        y = y.to(params.device)
-        x_prev = x_prev.to(params.device)
-
-        with torch.no_grad():
-            logits, loss = m(x, x_prev, y)
-        y_pred = torch.argmax(logits, dim=-1)
+    for train_path in train_files:
+        train_dataset = OpenWebText(f"data/{train_path}")
         
-        metrics['vl'].append(loss.item())
+        pb = tqdm(range(len(train_dataset)), leave=False)
+        pb.set_description(f'Train Epoch {epoch+1}/10')
+        for step in pb:
+            x, x_prev, y = train_dataset[step]
+            x = x.to(params.device)
+            y = y.to(params.device)
+            x_prev = x_prev.to(params.device)
+            if torch.rand(1).item() < 0.1:
+                x_prev = None
+            t1 = time.time()
+            with torch.autocast(device_type=params.device, dtype=torch.bfloat16):
+                logits, loss = m(x, x_prev, y)
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+            torch.cuda.synchronize()
+            t2 = time.time()
+            t3 = (t2-t1) * 1000
+            toks_per_sec = (BATCH_TOKENS) / (t2 - t1)
 
-        pb.set_postfix({'loss':loss.item()})
+            metrics['tl'].append(loss.item())
 
+            pb.set_postfix({'loss':loss.item(), 'time' : f'{t3:.4f}ms', 'toks/s' : f'{toks_per_sec:.4f}'})
 
+    del train_dataset
+    m.eval()
+
+    for val_path in val_files:
+        val_dataset = OpenWebText(f"data/{val_path}")
+        pb = tqdm(range(len(val_dataset)), leave=False)
+        pb.set_description(f'Val Epoch {epoch+1}/10')
+        for step in pb:
+            x, x_prev, y = train_dataset[step]
+            x = x.to(params.device)
+            y = y.to(params.device)
+            x_prev = x_prev.to(params.device)
+
+            with torch.no_grad():
+                logits, loss = m(x, x_prev, y)
+            y_pred = torch.argmax(logits, dim=-1)
+            
+            metrics['vl'].append(loss.item())
+
+            pb.set_postfix({'loss':loss.item()})
+    
+    del val_dataset
     m.train()
-
 
     PATH = f'artifacts/wavegpt_{today_date}_cp{epoch}.pth'
     torch.save({
