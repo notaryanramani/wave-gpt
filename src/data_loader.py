@@ -45,4 +45,19 @@ class OpenWebText(Dataset):
         prev_x = torch.stack([torch.tensor(tokens[i-self.block_size: i]) for i in r_idx])
         y = torch.stack([torch.tensor(tokens[i+1: i+self.block_size+1]) for i in r_idx])
         return x, prev_x, y
+    
 
+class Shakespeare(Dataset):
+    def __init__(self, filePath, block_size = params.block_size):
+        self.block_size = block_size
+        with open(filePath, 'r') as f:
+            self.text = f.read()
+
+    def __len__(self):
+        return len(self.text) // self.block_size
+    
+    def __getitem__(self, index):
+        index = min(index, len(self.text) - self.block_size - 1)
+        x = self.text[index   : index+self.block_size]
+        y = self.text[index+1 : index+1+self.block_size]
+        return list(x), list(y)
