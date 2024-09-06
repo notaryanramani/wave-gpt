@@ -58,6 +58,8 @@ class Shakespeare(Dataset):
     
     def __getitem__(self, index):
         index = min(index, len(self.text) - self.block_size - 1)
+        index = max(index, self.block_size)
         x = self.text[index   : index+self.block_size]
+        x_prev = self.text[index-self.block_size : index]
         y = self.text[index+1 : index+1+self.block_size]
-        return list(x), list(y)
+        return list(x), list(x_prev), list(y)

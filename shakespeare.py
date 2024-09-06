@@ -45,37 +45,52 @@ opt = torch.optim.AdamW(m.parameters(), lr=train_params.learning_rate)
 m.to(params.device)
 print(f'model has {sum(p.numel() for p in m.parameters() if p.requires_grad)} parameters')
 
+metrics = {
+    'tl' : [],
+    'vl' : []
+}
 
 #training loop
 print(f'running on {params.device}')
 print('starting training...')
 for epoch in range(train_params.epochs):
-    pb = tqdm(train_dataloader, leave=False, position=0)
+    if epoch > 7:
+        for group in opt.param_groups:
+            group['lr'] = train_params.learning_rate / 10
+    pb = tqdm(enumerate(train_dataloader), leave=False, position=0)
     pb.set_description(f'Train Epoch {epoch}/{train_params.epochs}')
-    for x, y in pb:
-        x, y = encode(x), encode(y)
+    for i, (x, x_prev, y) in pb:
+        x, x_prev, y = encode(x), encode(x_prev), encode(y)
         x = x.to(params.device)
+        x_prev = x_prev.to(params.device)
         y = y.to(params.device)
         t1 = time.time()
-        logits, loss = m(x, y)
+        logits, loss = m(x, x_prev, y)
         opt.zero_grad()
         loss.backward()
         opt.step()
+        metrics['train_loss'].append(loss.item())
         torch.cuda.synchronize()
         t2 = time.time()
         t3 = (t2-t1) * 1000
         toks_per_sec = (len(x.view(-1)))/ t3
         pb.set_postfix({'loss':loss.item(), 'time(ms)' : f'{t3:.4f}', 'toks/ms' : f'{toks_per_sec:.4f}'})
+        if i % train_params.eval_step == 0:
+            m.eval()
+            temp_losses = []
+            for i, (x, x_prev, y) in enumerate(val_dataloader):
+                if i > 50:
+                    break
+                x, x_prev, y = encode(x), encode(x_prev), encode(y)
+                x = x.to(params.device)
+                x_prev = x_prev.to(params.device)
+                y = y.to(params.device)
 
-    m.eval()
-    pb = tqdm(val_dataloader, leave=False)
-    pb.set_description(f'Val Epoch {epoch}/{train_params.epochs}')
-    for x, y in pb:
-        x, y = encode(x), encode(y)
-        x = x.to(params.device)
-        y = y.to(params.device)
+                with torch.no_grad():
+                    logits, loss = m(x, x_prev, y)
+                temp_losses.append(loss.item())
+            batch_loss = sum(temp_losses) / len(temp_losses)
+            metrics['val_loss'].append(batch_loss)
+            m.train()
 
-        with torch.no_grad():
-            logits, loss = m(x, y)
-        pb.set_postfix({'loss':loss.item()})
-    m.train()
+torch.save(metrics, 'artifacts/shakespeare_metrics.pth')
