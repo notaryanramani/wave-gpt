@@ -84,7 +84,7 @@ Both models were trained for `10 epochs` with `436 steps` each i.e. `892928` tok
 #### Validation Loss comparision
 ![ValidationLoss.png](img/Shakespeare_VL.png)
 
-We
+There is a significant different in the losses.
 
 
 ## Usage
