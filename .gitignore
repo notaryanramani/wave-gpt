@@ -168,3 +168,5 @@ data/
 mlruns/
 artifacts/
 *.ipynb
+main_dev.py
+gpt.py
