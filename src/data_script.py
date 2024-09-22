@@ -4,7 +4,7 @@ import os
 
 def download_data(FOLDER_PATH='data/', TAKE = 500000, max_file_size=500, validation_split=0.1):
     dataset = load_dataset('Skylion007/openwebtext', streaming=True, trust_remote_code=True)
-    data = dataset['train']
+    data = dataset['train'] # type: ignore
     max_size = max_file_size * 1024 * 1024
 
     train_idx = 1
@@ -17,7 +17,7 @@ def download_data(FOLDER_PATH='data/', TAKE = 500000, max_file_size=500, validat
 
 
     for i, example in enumerate(tqdm(data)):
-        text = '<|endoftext|>' + example['text'] + "\n"
+        text = '<|endoftext|>' + example['text'] + "\n" # type: ignore
         encoded_text = text.encode('utf-8')
 
         if i % int(1/validation_split) == 0:
