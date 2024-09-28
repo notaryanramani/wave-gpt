@@ -31,20 +31,7 @@ We add a trainable parameter $\alpha$ to allow the model to dynamically adjust t
 
 $$\text{logits} = (g(x) \cdot \alpha) + (h(x) \cdot (1 - \alpha))$$
 
-where `g(x)` is the output from Decoder and `h(x)` is output from the WaveNet
-
-
-### GPT Decoder
-<img src="img/decoder_.png" width=300><br>
-
-
-### WaveNet
-<img src="img/WaveNet.png" width=300><br>
-
-
-### WaveNet Layer
-<img src="img/WaveNetLayer.png" width=300><br><br>
-
+where `g(x)` is the output from Decoder and `h(x)` is output from the WaveNet  
 
 The diagram above illustrates the architecture of WaveGPT. The process involves:
 

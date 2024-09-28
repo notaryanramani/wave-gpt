@@ -24,6 +24,7 @@ class TrainParams:
     learning_rate:float = 3e-4
     warmup_epochs:int = 3
     eval_every:int = 1000
+    val_batch_size:int = 50
 
 train_params = TrainParams()
 
@@ -83,16 +84,13 @@ for epoch in range(10):
 
             pb.set_postfix({'loss':loss.item(), 'time' : f'{t3:.4f}ms', 'toks/s' : f'{toks_per_sec:.4f}'})
             if step % train_params.eval_every == 0:
+                m.eval() # type: ignore
                 with torch.no_grad():
                     val_loss = 0
                     val_idx = torch.randperm(len(val_files))[0]
                     val_path = val_files[val_idx]
-                    
                     val_dataset = OpenWebText(f"data/{val_path}")
-                    vn = len(val_dataset)
-                    for val_step in range(vn):
-                        if not val_step < 32:
-                            break
+                    for val_step in range(train_params.val_batch_size):
                         x, x_prev, y = val_dataset[val_step]
                         x = x.to(params.device)
                         y = y.to(params.device)
@@ -101,8 +99,9 @@ for epoch in range(10):
                             x_prev = None
                         logits, loss = m(x, x_prev, y)
                         val_loss += loss.item()
-                    val_loss /= vn
+                    val_loss /= train_params.val_batch_size
                     metrics['vl'].append(val_loss)
+                m.train() # type: ignore
         
     MODEL_PATH = f'artifacts/model_{today_date}_{epoch}.pt'
     torch.save({
