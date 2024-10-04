@@ -170,3 +170,4 @@ artifacts/
 *.ipynb
 main_dev.py
 gpt.py
+.DS_Store
