@@ -5,6 +5,8 @@ from typing import Tuple
 import os
 import tiktoken
 import mmap
+import numpy as np
+
 from .transformer import ModelHyperParams
 
 
@@ -63,3 +65,54 @@ class Shakespeare(Dataset):
         x_prev = self.text[index-self.block_size : index]
         y = self.text[index+1 : index+1+self.block_size]
         return list(x), list(x_prev), list(y)
+    
+
+class ShardsLoader:
+    def __init__(
+        self, 
+        process_rank,
+        num_processes,
+        path = 'data/', 
+        split = 'train', 
+        block_size = params.block_size, 
+        batch_size = params.batch_size
+    ):
+        self.path = path
+        self.T = block_size
+        self.B = batch_size
+        self.process_rank = process_rank
+        self.num_processes = num_processes
+
+        shards = os.listdir(path)
+        shards = sorted([os.path.join(path, shard) for shard in shards])
+        shards = [s for s in shards if split in s]
+        self.shards = shards
+        assert len(shards) > 0, f"No shards found for split {split}"
+        self.reset()
+    
+    def _load_tokens(self, file):
+        tokens = np.load(file)
+        tokens = tokens.astype(np.int64)
+        tokens = torch.tensor(tokens, dtype=torch.long)
+        return tokens
+
+    def reset(self):
+        self.current_shard = 0
+        self.tokens = self._load_tokens(self.shards[self.current_shard])
+        self.current_position = self.B * self.T * self.process_rank
+
+    def get_batch(self):
+        B, T = self.B, self.T
+        toks = self.tokens[self.current_position : self.current_position + B * T + 1]
+        x = toks[:-1].view(B, T)
+        y = toks[1:].view(B, T)
+
+        self.current_position += B * T * self.num_processes
+
+        if self.current_position + (B * T * self.num_processes + 1) > len(self.tokens):
+            self.current_shard = (self.current_shard + 1) % len(self.shards)
+            self.tokens = self._load_tokens(self.shards[self.current_shard])
+            self.current_position = B * T * self.process_rank
+        return x, y
+
+        
