@@ -11,6 +11,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 from tqdm import tqdm
 import tiktoken
+from dotenv import load_dotenv
+load_dotenv()
 
 from src import WaveGPT, ShardsLoader, ModelHyperParams
 
@@ -83,20 +85,21 @@ raw_model = model.module if use_ddp else model
 optim = torch.optim.AdamW(model.parameters(), lr=train_params.learning_rate) 
 lrs = CosineAnnealingLR(optim, T_max=train_params.steps - train_params.warmup_epochs, eta_min=3e-8)
 
+# checkpointing and logging
+os.makedirs('logs', exist_ok=True)
+logging.basicConfig(
+    filename=f'logs/{datetime.today()}.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(message)s',
+    datefmt='%d-%b-%y %H:%M:%S'
+)
+os.makedirs('checkpoints', exist_ok=True)
+metrics = {
+    'tl': [],
+    'vl': [],
+}
+
 if master_process:
-    os.makedirs('logs', exist_ok=True)
-    logging.basicConfig(
-        filename=f'logs/{datetime.today()}.log',
-        level=logging.INFO,
-        format='%(asctime)s - %(message)s',
-        datefmt='%d-%b-%y %H:%M:%S'
-    )
-    if train_params.checkpoint:
-        os.makedirs('checkpoints', exist_ok=True)
-        metrics = {
-            'tl': [],
-            'vl': [],
-        }
     logging.info(f'checkpointing: {train_params.checkpoint}')
     logging.info(f'total batch size: {total_batch_size}')
     logging.info(f'grad accum step: {grad_accum}')
@@ -133,8 +136,14 @@ for step in pb:
     if master_process:
         tokens_per_sec = total_batch_size / dt
         metrics['tl'].append(loss_accum)
-        logging.info(f'step: {step}, loss: {loss_accum}')
         pb.set_postfix_str(f'step: {step}, loss: {loss_accum}, time: {dt:.4f}s, toks/s: {tokens_per_sec:.4f}')
+    if (
+        (step % train_params.checkpoint_every == 0) or 
+        (step == train_params.steps - 1)
+    ) and master_process:
+        logging.info(f'step: {step}, loss: {loss_accum}')
+        raw_model.push_to_hub('WaveGPT', token=os.environ['HUGGINGFACE_TOKEN'])
+        torch.save(metrics, f'checkpoints/metrics.pt')
 
 if use_ddp:
     destroy_process_group()
