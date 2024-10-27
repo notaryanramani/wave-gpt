@@ -3,3 +3,4 @@ tqdm
 datasets
 numpy
 scikit-learn
+huggingface_hub

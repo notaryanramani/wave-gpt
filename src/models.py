@@ -4,12 +4,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Tuple, Optional
+from huggingface_hub import PyTorchModelHubMixin
 
 
 params = ModelHyperParams()
 
 
-class WaveGPT(nn.Module):
+class WaveGPT(
+    PyTorchModelHubMixin,
+    nn.Module,
+):
     def __init__(
         self,
         vocab_size:int,
@@ -35,7 +39,7 @@ class WaveGPT(nn.Module):
     def forward(
         self, 
         x:torch.Tensor, 
-        x_prev:Optional[torch.tensor] = None, 
+        x_prev:Optional[torch.Tensor] = None, 
         y:Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         B, T = x.size()

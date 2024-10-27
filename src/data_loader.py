@@ -99,13 +99,14 @@ class ShardsLoader:
     def reset(self):
         self.current_shard = 0
         self.tokens = self._load_tokens(self.shards[self.current_shard])
-        self.current_position = self.B * self.T * self.process_rank
+        self.current_position = self.B * self.T * self.process_rank + self.T
 
     def get_batch(self):
         B, T = self.B, self.T
         toks = self.tokens[self.current_position : self.current_position + B * T + 1]
         x = toks[:-1].view(B, T)
         y = toks[1:].view(B, T)
+        x_prev = self.tokens[self.current_position - T : self.current_position].view(B, T)
 
         self.current_position += B * T * self.num_processes
 
@@ -113,6 +114,5 @@ class ShardsLoader:
             self.current_shard = (self.current_shard + 1) % len(self.shards)
             self.tokens = self._load_tokens(self.shards[self.current_shard])
             self.current_position = B * T * self.process_rank
-        return x, y
+        return x, x_prev, y
 
-        
