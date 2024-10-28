@@ -11,8 +11,8 @@ params = ModelHyperParams()
 
 
 class WaveGPT(
-    PyTorchModelHubMixin,
     nn.Module,
+    PyTorchModelHubMixin,
 ):
     def __init__(
         self,

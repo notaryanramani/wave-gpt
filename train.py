@@ -10,7 +10,6 @@ from torch.distributed import init_process_group, destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
 from tqdm import tqdm
-import tiktoken
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -35,7 +34,7 @@ train_params = TrainParams()
 # ddp setup
 use_ddp = int(os.environ.get('WORLD_SIZE', 1)) > 1
 if use_ddp:
-    assert torch.cuda.is_available(), 'cuda is not available for ddp'
+    assert torch.cuda.is_available(), 'cuda not available. we need cuda to run ddp'
     ddp_rank = int(os.environ['RANK'])
     ddp_local_rank = int(os.environ['LOCAL_RANK'])
     ddp_world_size = int(os.environ['WORLD_SIZE'])
@@ -52,8 +51,9 @@ else:
         device = 'cuda'
     elif hasattr(torch, 'backends') and torch.backends.mps.is_available():
         device = 'mps'
+
     
-device_type = 'cuda' if device.startswith('cuda') else 'cpu'
+device_type = 'cuda' if device.startswith('cuda') else ('mps' if device == 'mps' else 'cpu')
 
 total_batch_size = 131072
 assert total_batch_size % (params.batch_size * params.block_size * ddp_world_size) == 0, 'batch size must be divisible by world size'
@@ -103,7 +103,7 @@ if master_process:
     logging.info(f'checkpointing: {train_params.checkpoint}')
     logging.info(f'total batch size: {total_batch_size}')
     logging.info(f'grad accum step: {grad_accum}')
-    logging.info(f'model has {sum(p.numel() for p in raw_model.parameters() if p.requires_grad)} parameters') # type: ignore
+    logging.info(f'model has {sum(p.numel() for p in raw_model.parameters() if p.requires_grad)} parameters') 
     logging.info(f'running on {device_type}')
     logging.info('starting training...')
     
@@ -136,7 +136,8 @@ for step in pb:
     if master_process:
         tokens_per_sec = total_batch_size / dt
         metrics['tl'].append(loss_accum)
-        pb.set_postfix_str(f'step: {step}, loss: {loss_accum}, time: {dt:.4f}s, toks/s: {tokens_per_sec:.4f}')
+        if isinstance(pb, tqdm):
+            pb.set_postfix_str(f'step: {step}, loss: {loss_accum}, time: {dt:.4f}s, toks/s: {tokens_per_sec:.4f}')
     if (
         (step % train_params.checkpoint_every == 0) or 
         (step == train_params.steps - 1)

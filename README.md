@@ -76,23 +76,24 @@ There is a significant different in the losses.
 
 ## Usage
 
-To train your own WaveGPT model, please refer to `main.py`. To train a GPT along with WaveGPT to compare both models on your dataset, please refer to `compare.py`. 
+### Step
 
-Use the saved metrics tensors in `artifacts` folder to plot graphs and evaluate your model.
+Setup your virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+To train your own WaveGPT model run:
 ```python
-PATH = 'metrics-path'
-if os.path.exists(PATH):
-    metrics = torch.load(PATH)
-    metrics = {key:value.tolist() for key, value in metrics.items()}
-metrics.keys()
+python train.py
+```
+Supports multiple gpu, single gpu, mps (apple silicon) & cpu training.
 
-# Output if you run compare.py: dict_keys(['gpt_tl', 'gpt_vl', 'gpt_ta', 'gpt_va', 'wave_tl', 'wave_vl', 'wave_ta', 'wave_va'])
-# Output if you run wgpt_trainer.py: dict_keys(['tl','vl','ta','va'])
-
-# t stands for train
-# v stands for validation
-# l stands for loss
-# a stands for accuracy
+To train a character level language model on shakespeare dataset run:
+```python
+python clm.py
 ```
 
 
